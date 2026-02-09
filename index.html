@@ -82,6 +82,11 @@
       width:48%;
     }
 
+    img {
+      border-radius:8px;
+      margin-bottom:10px;
+    }
+
     table {
       width:100%;
       border-collapse:collapse;
@@ -210,48 +215,50 @@ function comparePlayers() {
   document.getElementById("compareResult").innerHTML = "Loading comparison...";
 
   Promise.all([
-    fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${p1}&format=json&origin=*`)
-      .then(res => res.json())
-      .then(data => data.query.search[0]?.title),
-
-    fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${p2}&format=json&origin=*`)
-      .then(res => res.json())
-      .then(data => data.query.search[0]?.title)
+    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${p1.replace(/ /g,"_")}`),
+    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${p2.replace(/ /g,"_")}`)
   ])
-  .then(titles => {
-
-    if (!titles[0] || !titles[1]) throw new Error();
-
-    return Promise.all([
-      fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${titles[0]}&format=json&origin=*`).then(res => res.json()),
-      fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${titles[1]}&format=json&origin=*`).then(res => res.json())
-    ]);
-  })
+  .then(responses => Promise.all(responses.map(res => res.json())))
   .then(data => {
 
-    const html1 = data[0].parse.text["*"];
-    const html2 = data[1].parse.text["*"];
+    const player1 = data[0];
+    const player2 = data[1];
 
-    const infobox1 = html1.match(/<table class="infobox[\s\S]*?<\/table>/);
-    const infobox2 = html2.match(/<table class="infobox[\s\S]*?<\/table>/);
+    if (!player1.title || !player2.title) {
+      throw new Error();
+    }
 
     document.getElementById("compareResult").innerHTML = `
       <div class="card">
         <div class="compare-wrapper">
+          
           <div class="compare-box">
-            <h3>${data[0].parse.title}</h3>
-            ${infobox1 ? infobox1[0] : "No stats available"}
+            <h3>${player1.title}</h3>
+            ${player1.thumbnail ? `<img src="${player1.thumbnail.source}" width="150">` : ""}
+            <p><strong>${player1.description || ""}</strong></p>
+            <p>${player1.extract || ""}</p>
+            <a href="${player1.content_urls.desktop.page}" target="_blank">
+              View Full Profile →
+            </a>
           </div>
+
           <div class="compare-box">
-            <h3>${data[1].parse.title}</h3>
-            ${infobox2 ? infobox2[0] : "No stats available"}
+            <h3>${player2.title}</h3>
+            ${player2.thumbnail ? `<img src="${player2.thumbnail.source}" width="150">` : ""}
+            <p><strong>${player2.description || ""}</strong></p>
+            <p>${player2.extract || ""}</p>
+            <a href="${player2.content_urls.desktop.page}" target="_blank">
+              View Full Profile →
+            </a>
           </div>
+
         </div>
       </div>
     `;
   })
   .catch(() => {
-    document.getElementById("compareResult").innerHTML = "Comparison failed.";
+    document.getElementById("compareResult").innerHTML =
+      "Could not compare players. Try full names.";
   });
 }
 
