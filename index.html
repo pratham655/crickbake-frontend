@@ -89,40 +89,12 @@
       padding:6px;
       font-size:13px;
     }
-
   </style>
 </head>
 
 <body>
 
 <h1>🏏 Cricket Player Explorer</h1>
-
-<!-- Popular -->
-<h3>🔥 Popular Players</h3>
-<div>
-  <button onclick="quickSearch('Virat Kohli')">Virat Kohli</button>
-  <button onclick="quickSearch('MS Dhoni')">MS Dhoni</button>
-  <button onclick="quickSearch('Rohit Sharma')">Rohit Sharma</button>
-  <button onclick="quickSearch('Smriti Mandhana')">Smriti Mandhana</button>
-  <button onclick="quickSearch('Babar Azam')">Babar Azam</button>
-  <button onclick="quickSearch('Kane Williamson')">Kane Williamson</button>
-</div>
-
-<hr>
-
-<!-- Country Filter -->
-<h3>🌍 Filter by Country</h3>
-<select onchange="filterByCountry(this.value)">
-  <option value="">Select Country</option>
-  <option value="India">India</option>
-  <option value="Australia">Australia</option>
-  <option value="England">England</option>
-  <option value="Pakistan">Pakistan</option>
-</select>
-
-<div id="countryPlayers"></div>
-
-<hr>
 
 <!-- Search -->
 <h3>🔎 Search Any Player</h3>
@@ -150,30 +122,6 @@
 let bioContent = "";
 let statsContent = "";
 
-function quickSearch(name) {
-  document.getElementById("playerName").value = name;
-  searchPlayer();
-}
-
-function filterByCountry(country) {
-  const players = {
-    India: ["Virat Kohli","Rohit Sharma","Smriti Mandhana"],
-    Australia: ["Pat Cummins","David Warner"],
-    England: ["Joe Root","Ben Stokes"],
-    Pakistan: ["Babar Azam","Shaheen Afridi"]
-  };
-
-  const container = document.getElementById("countryPlayers");
-  container.innerHTML = "";
-
-  if (!players[country]) return;
-
-  players[country].forEach(player => {
-    container.innerHTML += 
-      `<button onclick="quickSearch('${player}')">${player}</button>`;
-  });
-}
-
 function searchPlayer() {
   const name = document.getElementById("playerName").value.trim();
   if (!name) return;
@@ -184,10 +132,12 @@ function searchPlayer() {
   fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
     .then(res => res.json())
     .then(searchData => {
+
       if (!searchData.query.search.length) {
         document.getElementById("result").innerHTML = "Player not found.";
         return;
       }
+
       const pageTitle = searchData.query.search[0].title;
       return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${pageTitle}&format=json&origin=*`);
     })
@@ -196,11 +146,16 @@ function searchPlayer() {
 
       let html = data.parse.text["*"];
 
-      // Biography
-      const bioMatch = html.match(/<p>(.*?)<\/p>/);
-      bioContent = bioMatch ? bioMatch[0] : "No biography found.";
+      // Extract first 3 meaningful paragraphs
+      const paragraphs = html.match(/<p>.*?<\/p>/g);
 
-      // Clean Stats (infobox)
+      if (paragraphs) {
+        bioContent = paragraphs.slice(0, 3).join("");
+      } else {
+        bioContent = "No biography found.";
+      }
+
+      // Extract and clean infobox
       const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
 
       if (tableMatch) {
@@ -214,6 +169,9 @@ function searchPlayer() {
 
       document.getElementById("tabs").style.display = "block";
       showTab('bio');
+    })
+    .catch(() => {
+      document.getElementById("result").innerHTML = "Error loading data.";
     });
 }
 
@@ -244,7 +202,7 @@ function comparePlayers() {
           <div id="chart"></div>
         </div>
       `;
-      createChart(p1,p2);
+      createChart(p1, p2);
     });
 }
 
@@ -259,11 +217,12 @@ function fetchPlayerCard(name) {
     .then(res => res.json())
     .then(data => {
       let html = data.parse.text["*"];
-      const bioMatch = html.match(/<p>(.*?)<\/p>/);
+      const paragraphs = html.match(/<p>.*?<\/p>/g);
+      const bio = paragraphs ? paragraphs.slice(0,2).join("") : "";
       const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
       return `
         <h3>${data.parse.title}</h3>
-        ${bioMatch ? bioMatch[0] : ""}
+        ${bio}
         ${tableMatch ? tableMatch[0] : ""}
       `;
     });
