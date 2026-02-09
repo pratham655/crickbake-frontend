@@ -111,7 +111,21 @@ function searchPlayer() {
 
   document.getElementById("result").innerHTML = "Loading...";
 
-  fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${name}&format=json&origin=*`)
+  // Step 1: Search correct page title
+  fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
+    .then(res => res.json())
+    .then(searchData => {
+
+      if (!searchData.query.search.length) {
+        document.getElementById("result").innerHTML = "Player not found.";
+        return;
+      }
+
+      const correctTitle = searchData.query.search[0].title;
+
+      // Step 2: Fetch full page using correct title
+      return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${correctTitle}&format=json&origin=*`);
+    })
     .then(res => res.json())
     .then(data => {
 
@@ -122,7 +136,7 @@ function searchPlayer() {
 
       let html = data.parse.text["*"];
 
-      // Remove edit links & scripts
+      // Clean unwanted parts
       html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
       html = html.replace(/<span class="mw-editsection">[\s\S]*?<\/span>/g, '');
 
