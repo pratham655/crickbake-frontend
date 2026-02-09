@@ -18,20 +18,23 @@
     }
 
     header h1 {
-      font-size:42px;
+      font-size:40px;
       margin:0;
-      letter-spacing:2px;
     }
 
     header p {
-      margin-top:10px;
       color:#ccc;
+      margin-top:10px;
     }
 
     .container {
       width:95%;
       max-width:1100px;
       margin:auto;
+    }
+
+    .section {
+      margin:40px 0;
     }
 
     input {
@@ -48,18 +51,14 @@
       border-radius:5px;
       border:none;
       background:#00ffcc;
-      cursor:pointer;
       font-weight:bold;
+      cursor:pointer;
       transition:0.3s;
     }
 
     button:hover {
       background:#00ddaa;
       transform:scale(1.05);
-    }
-
-    .section {
-      margin:40px 0;
     }
 
     .card {
@@ -73,7 +72,13 @@
       box-shadow:0 0 15px rgba(0,0,0,0.6);
     }
 
-    .compare-card {
+    .compare-wrapper {
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:space-between;
+    }
+
+    .compare-box {
       width:48%;
     }
 
@@ -92,21 +97,14 @@
       font-size:13px;
     }
 
-    a { color:#00ffcc; }
-
     footer {
       margin-top:50px;
       padding:20px;
       background:#111;
       color:#888;
-      font-size:14px;
     }
 
-    .compare-wrapper {
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:space-between;
-    }
+    a { color:#00ffcc; }
 
   </style>
 </head>
@@ -115,12 +113,12 @@
 
 <header>
   <h1>🏏 CricBakes</h1>
-  <p>Explore Cricket Legends • Full Career Profiles • Stats & Achievements</p>
+  <p>Explore Cricket Legends • Full Career Profiles • Compare Players</p>
 </header>
 
 <div class="container">
 
-  <!-- Popular -->
+  <!-- Popular Players -->
   <div class="section">
     <h2>🔥 Popular Players</h2>
     <button onclick="quickSearch('Sachin Tendulkar')">Sachin Tendulkar</button>
@@ -128,13 +126,12 @@
     <button onclick="quickSearch('Yuvraj Singh')">Yuvraj Singh</button>
     <button onclick="quickSearch('Smriti Mandhana')">Smriti Mandhana</button>
     <button onclick="quickSearch('Babar Azam')">Babar Azam</button>
-    <button onclick="quickSearch('Brian Lara')">Brian Lara</button>
   </div>
 
   <!-- Search -->
   <div class="section">
     <h2>🔎 Search Any Player</h2>
-    <input type="text" id="playerName" placeholder="Enter full player name">
+    <input type="text" id="playerName" placeholder="Enter player name">
     <button onclick="searchPlayer()">Search</button>
   </div>
 
@@ -164,7 +161,6 @@ function quickSearch(name) {
 }
 
 function searchPlayer() {
-
   const name = document.getElementById("playerName").value.trim();
   if (!name) return;
 
@@ -179,9 +175,9 @@ function searchPlayer() {
         return;
       }
 
-      const correctTitle = searchData.query.search[0].title;
+      const title = searchData.query.search[0].title;
 
-      return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${correctTitle}&format=json&origin=*`);
+      return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${title}&format=json&origin=*`);
     })
     .then(res => res.json())
     .then(data => {
@@ -242,21 +238,20 @@ function comparePlayers() {
     document.getElementById("compareResult").innerHTML = `
       <div class="card">
         <div class="compare-wrapper">
-          <div class="compare-card">
+          <div class="compare-box">
             <h3>${data[0].parse.title}</h3>
-            ${infobox1 ? infobox1[0] : "No stats available."}
+            ${infobox1 ? infobox1[0] : "No stats available"}
           </div>
-          <div class="compare-card">
+          <div class="compare-box">
             <h3>${data[1].parse.title}</h3>
-            ${infobox2 ? infobox2[0] : "No stats available."}
+            ${infobox2 ? infobox2[0] : "No stats available"}
           </div>
         </div>
       </div>
     `;
   })
   .catch(() => {
-    document.getElementById("compareResult").innerHTML =
-      "Could not compare players.";
+    document.getElementById("compareResult").innerHTML = "Comparison failed.";
   });
 }
 
