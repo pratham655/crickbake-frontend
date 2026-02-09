@@ -15,41 +15,24 @@
 
     h1 { padding: 20px; }
 
-    input {
-      padding: 10px;
-      width: 200px;
+    input, select {
+      padding: 8px;
+      margin: 5px;
       border-radius: 5px;
       border: none;
-      margin: 5px;
     }
 
     button {
-      padding: 10px 15px;
+      padding: 8px 12px;
+      margin: 5px;
       border-radius: 5px;
       border: none;
       background: #00ffcc;
-      font-weight: bold;
       cursor: pointer;
+      font-weight: bold;
     }
 
     button:hover { background: #00ddaa; }
-
-    .tabs {
-      margin-top: 15px;
-    }
-
-    .tab-btn {
-      padding: 8px 15px;
-      margin: 5px;
-      cursor: pointer;
-      background: #111;
-      border-radius: 5px;
-    }
-
-    .tab-btn.active {
-      background: #00ffcc;
-      color: black;
-    }
 
     .card {
       background: #1e1e1e;
@@ -59,6 +42,23 @@
       max-width: 1000px;
       border-radius: 12px;
       text-align: left;
+    }
+
+    .tabs {
+      margin-top: 15px;
+    }
+
+    .tab-btn {
+      padding: 6px 12px;
+      margin: 5px;
+      background: #111;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .tab-btn.active {
+      background: #00ffcc;
+      color: black;
     }
 
     .compare-container {
@@ -74,6 +74,7 @@
       background: #1e1e1e;
       padding: 15px;
       border-radius: 10px;
+      text-align: left;
     }
 
     table {
@@ -90,7 +91,6 @@
       padding: 6px;
       font-size: 13px;
     }
-
   </style>
 </head>
 
@@ -98,8 +98,37 @@
 
 <h1>🏏 Cricket Player Explorer</h1>
 
-<h3>Search Player</h3>
-<input type="text" id="playerName" placeholder="Enter player name">
+<!-- Popular Players -->
+<h3>🔥 Popular Players</h3>
+<div>
+  <button onclick="quickSearch('Virat Kohli')">Virat Kohli</button>
+  <button onclick="quickSearch('MS Dhoni')">MS Dhoni</button>
+  <button onclick="quickSearch('Rohit Sharma')">Rohit Sharma</button>
+  <button onclick="quickSearch('Smriti Mandhana')">Smriti Mandhana</button>
+  <button onclick="quickSearch('Harmanpreet Kaur')">Harmanpreet Kaur</button>
+  <button onclick="quickSearch('Babar Azam')">Babar Azam</button>
+  <button onclick="quickSearch('Kane Williamson')">Kane Williamson</button>
+</div>
+
+<hr>
+
+<!-- Country Filter -->
+<h3>🌍 Filter by Country</h3>
+<select onchange="filterByCountry(this.value)">
+  <option value="">Select Country</option>
+  <option value="India">India</option>
+  <option value="Australia">Australia</option>
+  <option value="England">England</option>
+  <option value="Pakistan">Pakistan</option>
+</select>
+
+<div id="countryPlayers"></div>
+
+<hr>
+
+<!-- Search -->
+<h3>🔎 Search Any Player</h3>
+<input type="text" id="playerName" placeholder="Enter full player name">
 <button onclick="searchPlayer()">Search</button>
 
 <div class="tabs" id="tabs" style="display:none;">
@@ -109,9 +138,10 @@
 
 <div id="result"></div>
 
-<hr style="margin:40px 0;">
+<hr>
 
-<h3>Compare Players</h3>
+<!-- Compare -->
+<h3>⚔ Compare Players</h3>
 <input type="text" id="compare1" placeholder="Player 1">
 <input type="text" id="compare2" placeholder="Player 2">
 <button onclick="comparePlayers()">Compare</button>
@@ -121,6 +151,30 @@
 <script>
 let bioContent = "";
 let statsContent = "";
+
+function quickSearch(name) {
+  document.getElementById("playerName").value = name;
+  searchPlayer();
+}
+
+function filterByCountry(country) {
+  const players = {
+    India: ["Virat Kohli", "Rohit Sharma", "Smriti Mandhana"],
+    Australia: ["Pat Cummins", "David Warner"],
+    England: ["Joe Root", "Ben Stokes"],
+    Pakistan: ["Babar Azam", "Shaheen Afridi"]
+  };
+
+  const container = document.getElementById("countryPlayers");
+  container.innerHTML = "";
+
+  if (!players[country]) return;
+
+  players[country].forEach(player => {
+    container.innerHTML += 
+      `<button onclick="quickSearch('${player}')">${player}</button>`;
+  });
+}
 
 function searchPlayer() {
   const name = document.getElementById("playerName").value.trim();
@@ -144,11 +198,9 @@ function searchPlayer() {
 
       let html = data.parse.text["*"];
 
-      // Extract first paragraph
       const bioMatch = html.match(/<p>(.*?)<\/p>/);
       bioContent = bioMatch ? bioMatch[0] : "No biography found.";
 
-      // Extract infobox table
       const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
       statsContent = tableMatch ? tableMatch[0] : "No stats available.";
 
@@ -172,20 +224,18 @@ function comparePlayers() {
   const p2 = document.getElementById("compare2").value.trim();
   if (!p1 || !p2) return;
 
-  document.getElementById("compareResult").innerHTML = "Loading comparison...";
+  document.getElementById("compareResult").innerHTML = "Loading...";
 
-  Promise.all([
-    fetchPlayerInfo(p1),
-    fetchPlayerInfo(p2)
-  ]).then(results => {
-    document.getElementById("compareResult").innerHTML = `
-      <div class="compare-card">${results[0]}</div>
-      <div class="compare-card">${results[1]}</div>
-    `;
-  });
+  Promise.all([fetchPlayerCard(p1), fetchPlayerCard(p2)])
+    .then(results => {
+      document.getElementById("compareResult").innerHTML = `
+        <div class="compare-card">${results[0]}</div>
+        <div class="compare-card">${results[1]}</div>
+      `;
+    });
 }
 
-function fetchPlayerInfo(name) {
+function fetchPlayerCard(name) {
   return fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
     .then(res => res.json())
     .then(searchData => {
@@ -198,6 +248,7 @@ function fetchPlayerInfo(name) {
       let html = data.parse.text["*"];
       const bioMatch = html.match(/<p>(.*?)<\/p>/);
       const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
+
       return `
         <h3>${data.parse.title}</h3>
         ${bioMatch ? bioMatch[0] : ""}
