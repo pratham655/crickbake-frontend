@@ -47,8 +47,8 @@
       background: #1e1e1e;
       margin: 30px auto;
       padding: 20px;
-      width: 90%;
-      max-width: 900px;
+      width: 95%;
+      max-width: 1000px;
       border-radius: 12px;
       box-shadow: 0 0 15px rgba(0,0,0,0.6);
       text-align: left;
@@ -60,7 +60,7 @@
     }
 
     .wiki-content {
-      max-height: 600px;
+      max-height: 650px;
       overflow-y: auto;
       background: #111;
       padding: 15px;
@@ -111,29 +111,40 @@
     if (!name) return;
 
     const resultDiv = document.getElementById("result");
-    resultDiv.innerHTML = "<p class='loading'>Loading full biography & stats...</p>";
+    resultDiv.innerHTML = "<p class='loading'>Searching player...</p>";
 
-    const formattedName = name.replace(/ /g, "_");
-
-    fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${formattedName}&format=json&origin=*`)
+    // Step 1: Search for correct page title
+    fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
       .then(res => res.json())
-      .then(data => {
+      .then(searchData => {
 
-        if (!data.parse) {
-          resultDiv.innerHTML = "<p>Player not found. Try full name.</p>";
+        if (!searchData.query.search.length) {
+          resultDiv.innerHTML = "<p>Player not found.</p>";
           return;
         }
 
-        let htmlContent = data.parse.text["*"];
+        const pageTitle = searchData.query.search[0].title;
 
-        // Remove edit links and unnecessary scripts
+        // Step 2: Fetch full page content
+        return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${pageTitle}&format=json&origin=*`);
+      })
+      .then(res => res.json())
+      .then(pageData => {
+
+        if (!pageData.parse) {
+          resultDiv.innerHTML = "<p>Player page not found.</p>";
+          return;
+        }
+
+        let htmlContent = pageData.parse.text["*"];
+
+        // Clean unwanted scripts
         htmlContent = htmlContent
-          .replace(/<script[\s\S]*?<\/script>/gi, '')
-          .replace(/class="mw-editsection"/gi, '');
+          .replace(/<script[\s\S]*?<\/script>/gi, '');
 
         resultDiv.innerHTML = `
           <div class="card">
-            <h2>${data.parse.title}</h2>
+            <h2>${pageData.parse.title}</h2>
             <div class="wiki-content">
               ${htmlContent}
             </div>
@@ -141,7 +152,7 @@
         `;
       })
       .catch(() => {
-        resultDiv.innerHTML = "<p>Something went wrong.</p>";
+        resultDiv.innerHTML = "<p>Error loading player data.</p>";
       });
   }
 
