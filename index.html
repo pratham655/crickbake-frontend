@@ -47,26 +47,47 @@
       background: #1e1e1e;
       margin: 30px auto;
       padding: 20px;
-      width: 85%;
-      max-width: 600px;
+      width: 90%;
+      max-width: 900px;
       border-radius: 12px;
       box-shadow: 0 0 15px rgba(0,0,0,0.6);
+      text-align: left;
     }
 
-    img {
-      width: 150px;
-      border-radius: 10px;
-      margin-bottom: 15px;
+    .card h2 {
+      text-align: center;
+      margin-bottom: 20px;
     }
 
-    a {
-      color: #00ffcc;
-      text-decoration: none;
-      font-weight: bold;
+    .wiki-content {
+      max-height: 600px;
+      overflow-y: auto;
+      background: #111;
+      padding: 15px;
+      border-radius: 8px;
     }
 
     .loading {
       margin-top: 20px;
+      color: #00ffcc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    table, th, td {
+      border: 1px solid #444;
+    }
+
+    th, td {
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    a {
       color: #00ffcc;
     }
   </style>
@@ -77,7 +98,7 @@
 <h1>🏏 Cricket Player Explorer</h1>
 
 <div class="search-box">
-  <input type="text" id="playerName" placeholder="Enter player full name..." />
+  <input type="text" id="playerName" placeholder="Enter full player name..." />
   <button onclick="searchPlayer()">Search</button>
 </div>
 
@@ -87,37 +108,40 @@
   function searchPlayer() {
 
     const name = document.getElementById("playerName").value.trim();
-
     if (!name) return;
 
     const resultDiv = document.getElementById("result");
-    resultDiv.innerHTML = "<p class='loading'>Loading player information...</p>";
+    resultDiv.innerHTML = "<p class='loading'>Loading full biography & stats...</p>";
 
     const formattedName = name.replace(/ /g, "_");
 
-    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${formattedName}`)
+    fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${formattedName}&format=json&origin=*`)
       .then(res => res.json())
       .then(data => {
 
-        if (!data.title || data.type === "https://mediawiki.org/wiki/HyperSwitch/errors/not_found") {
+        if (!data.parse) {
           resultDiv.innerHTML = "<p>Player not found. Try full name.</p>";
           return;
         }
 
+        let htmlContent = data.parse.text["*"];
+
+        // Remove edit links and unnecessary scripts
+        htmlContent = htmlContent
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/class="mw-editsection"/gi, '');
+
         resultDiv.innerHTML = `
           <div class="card">
-            <h2>${data.title}</h2>
-            ${data.thumbnail ? `<img src="${data.thumbnail.source}" />` : ""}
-            <p>${data.extract}</p>
-            <br>
-            <a href="${data.content_urls.desktop.page}" target="_blank">
-              Read Full Biography on Wikipedia →
-            </a>
+            <h2>${data.parse.title}</h2>
+            <div class="wiki-content">
+              ${htmlContent}
+            </div>
           </div>
         `;
       })
       .catch(() => {
-        resultDiv.innerHTML = "<p>Something went wrong. Try again.</p>";
+        resultDiv.innerHTML = "<p>Something went wrong.</p>";
       });
   }
 
