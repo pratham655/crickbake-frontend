@@ -18,7 +18,7 @@
     }
 
     header h1 {
-      font-size:40px;
+      font-size:42px;
       margin:0;
       letter-spacing:2px;
     }
@@ -73,6 +73,10 @@
       box-shadow:0 0 15px rgba(0,0,0,0.6);
     }
 
+    .compare-card {
+      width:48%;
+    }
+
     table {
       width:100%;
       border-collapse:collapse;
@@ -97,6 +101,13 @@
       color:#888;
       font-size:14px;
     }
+
+    .compare-wrapper {
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:space-between;
+    }
+
   </style>
 </head>
 
@@ -109,7 +120,7 @@
 
 <div class="container">
 
-  <!-- Popular Players -->
+  <!-- Popular -->
   <div class="section">
     <h2>🔥 Popular Players</h2>
     <button onclick="quickSearch('Sachin Tendulkar')">Sachin Tendulkar</button>
@@ -182,7 +193,6 @@ function searchPlayer() {
 
       let html = data.parse.text["*"];
 
-      // Clean unwanted parts
       html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
       html = html.replace(/<span class="mw-editsection">[\s\S]*?<\/span>/g, '');
 
@@ -211,7 +221,6 @@ function comparePlayers() {
     fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${p2}&format=json&origin=*`)
       .then(res => res.json())
       .then(data => data.query.search[0]?.title)
-
   ])
   .then(titles => {
 
@@ -232,12 +241,12 @@ function comparePlayers() {
 
     document.getElementById("compareResult").innerHTML = `
       <div class="card">
-        <div style="display:flex; flex-wrap:wrap; justify-content:space-between;">
-          <div style="width:48%;">
+        <div class="compare-wrapper">
+          <div class="compare-card">
             <h3>${data[0].parse.title}</h3>
             ${infobox1 ? infobox1[0] : "No stats available."}
           </div>
-          <div style="width:48%;">
+          <div class="compare-card">
             <h3>${data[1].parse.title}</h3>
             ${infobox2 ? infobox2[0] : "No stats available."}
           </div>
