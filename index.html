@@ -13,20 +13,14 @@
       text-align: center;
     }
 
-    h1 {
-      padding: 20px;
-    }
-
-    .search-box {
-      margin: 20px;
-    }
+    h1 { padding: 20px; }
 
     input {
       padding: 10px;
-      width: 260px;
+      width: 200px;
       border-radius: 5px;
       border: none;
-      outline: none;
+      margin: 5px;
     }
 
     button {
@@ -36,46 +30,56 @@
       background: #00ffcc;
       font-weight: bold;
       cursor: pointer;
-      margin-left: 5px;
     }
 
-    button:hover {
-      background: #00ddaa;
+    button:hover { background: #00ddaa; }
+
+    .tabs {
+      margin-top: 15px;
+    }
+
+    .tab-btn {
+      padding: 8px 15px;
+      margin: 5px;
+      cursor: pointer;
+      background: #111;
+      border-radius: 5px;
+    }
+
+    .tab-btn.active {
+      background: #00ffcc;
+      color: black;
     }
 
     .card {
       background: #1e1e1e;
-      margin: 30px auto;
+      margin: 20px auto;
       padding: 20px;
       width: 95%;
       max-width: 1000px;
       border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.6);
       text-align: left;
     }
 
-    .card h2 {
-      text-align: center;
-      margin-bottom: 20px;
+    .compare-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
-    .wiki-content {
-      max-height: 650px;
-      overflow-y: auto;
-      background: #111;
+    .compare-card {
+      width: 45%;
+      min-width: 300px;
+      margin: 10px;
+      background: #1e1e1e;
       padding: 15px;
-      border-radius: 8px;
-    }
-
-    .loading {
-      margin-top: 20px;
-      color: #00ffcc;
+      border-radius: 10px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 15px;
+      margin-top: 10px;
     }
 
     table, th, td {
@@ -83,13 +87,10 @@
     }
 
     th, td {
-      padding: 8px;
-      font-size: 14px;
+      padding: 6px;
+      font-size: 13px;
     }
 
-    a {
-      color: #00ffcc;
-    }
   </style>
 </head>
 
@@ -97,71 +98,113 @@
 
 <h1>🏏 Cricket Player Explorer</h1>
 
-<div class="search-box">
-  <input type="text" id="playerName" placeholder="Enter full player name..." />
-  <button onclick="searchPlayer()">Search</button>
+<h3>Search Player</h3>
+<input type="text" id="playerName" placeholder="Enter player name">
+<button onclick="searchPlayer()">Search</button>
+
+<div class="tabs" id="tabs" style="display:none;">
+  <span class="tab-btn active" onclick="showTab('bio')">Biography</span>
+  <span class="tab-btn" onclick="showTab('stats')">Stats</span>
 </div>
 
 <div id="result"></div>
 
+<hr style="margin:40px 0;">
+
+<h3>Compare Players</h3>
+<input type="text" id="compare1" placeholder="Player 1">
+<input type="text" id="compare2" placeholder="Player 2">
+<button onclick="comparePlayers()">Compare</button>
+
+<div class="compare-container" id="compareResult"></div>
+
 <script>
-  function searchPlayer() {
+let bioContent = "";
+let statsContent = "";
 
-    const name = document.getElementById("playerName").value.trim();
-    if (!name) return;
+function searchPlayer() {
+  const name = document.getElementById("playerName").value.trim();
+  if (!name) return;
 
-    const resultDiv = document.getElementById("result");
-    resultDiv.innerHTML = "<p class='loading'>Searching player...</p>";
+  document.getElementById("tabs").style.display = "none";
+  document.getElementById("result").innerHTML = "Loading...";
 
-    // Step 1: Search for correct page title
-    fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
-      .then(res => res.json())
-      .then(searchData => {
-
-        if (!searchData.query.search.length) {
-          resultDiv.innerHTML = "<p>Player not found.</p>";
-          return;
-        }
-
-        const pageTitle = searchData.query.search[0].title;
-
-        // Step 2: Fetch full page content
-        return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${pageTitle}&format=json&origin=*`);
-      })
-      .then(res => res.json())
-      .then(pageData => {
-
-        if (!pageData.parse) {
-          resultDiv.innerHTML = "<p>Player page not found.</p>";
-          return;
-        }
-
-        let htmlContent = pageData.parse.text["*"];
-
-        // Clean unwanted scripts
-        htmlContent = htmlContent
-          .replace(/<script[\s\S]*?<\/script>/gi, '');
-
-        resultDiv.innerHTML = `
-          <div class="card">
-            <h2>${pageData.parse.title}</h2>
-            <div class="wiki-content">
-              ${htmlContent}
-            </div>
-          </div>
-        `;
-      })
-      .catch(() => {
-        resultDiv.innerHTML = "<p>Error loading player data.</p>";
-      });
-  }
-
-  document.getElementById("playerName")
-    .addEventListener("keyup", function(event) {
-      if (event.key === "Enter") {
-        searchPlayer();
+  fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
+    .then(res => res.json())
+    .then(searchData => {
+      if (!searchData.query.search.length) {
+        document.getElementById("result").innerHTML = "Player not found.";
+        return;
       }
+      const pageTitle = searchData.query.search[0].title;
+      return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${pageTitle}&format=json&origin=*`);
+    })
+    .then(res => res.json())
+    .then(data => {
+
+      let html = data.parse.text["*"];
+
+      // Extract first paragraph
+      const bioMatch = html.match(/<p>(.*?)<\/p>/);
+      bioContent = bioMatch ? bioMatch[0] : "No biography found.";
+
+      // Extract infobox table
+      const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
+      statsContent = tableMatch ? tableMatch[0] : "No stats available.";
+
+      document.getElementById("tabs").style.display = "block";
+      showTab('bio');
     });
+}
+
+function showTab(tab) {
+  const buttons = document.querySelectorAll(".tab-btn");
+  buttons.forEach(btn => btn.classList.remove("active"));
+  if (tab === 'bio') buttons[0].classList.add("active");
+  else buttons[1].classList.add("active");
+
+  document.getElementById("result").innerHTML =
+    `<div class="card">${tab === 'bio' ? bioContent : statsContent}</div>`;
+}
+
+function comparePlayers() {
+  const p1 = document.getElementById("compare1").value.trim();
+  const p2 = document.getElementById("compare2").value.trim();
+  if (!p1 || !p2) return;
+
+  document.getElementById("compareResult").innerHTML = "Loading comparison...";
+
+  Promise.all([
+    fetchPlayerInfo(p1),
+    fetchPlayerInfo(p2)
+  ]).then(results => {
+    document.getElementById("compareResult").innerHTML = `
+      <div class="compare-card">${results[0]}</div>
+      <div class="compare-card">${results[1]}</div>
+    `;
+  });
+}
+
+function fetchPlayerInfo(name) {
+  return fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
+    .then(res => res.json())
+    .then(searchData => {
+      if (!searchData.query.search.length) return "Not found.";
+      const pageTitle = searchData.query.search[0].title;
+      return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${pageTitle}&format=json&origin=*`);
+    })
+    .then(res => res.json())
+    .then(data => {
+      let html = data.parse.text["*"];
+      const bioMatch = html.match(/<p>(.*?)<\/p>/);
+      const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
+      return `
+        <h3>${data.parse.title}</h3>
+        ${bioMatch ? bioMatch[0] : ""}
+        ${tableMatch ? tableMatch[0] : ""}
+      `;
+    });
+}
 </script>
 
 </body>
