@@ -39,23 +39,30 @@
       background:#1e1e1e;
       margin:20px auto;
       padding:20px;
-      width:90%;
-      max-width:700px;
+      width:95%;
+      max-width:1000px;
       border-radius:12px;
       text-align:left;
+      overflow:auto;
+      max-height:700px;
     }
 
-    img {
-      width:150px;
-      border-radius:10px;
-      display:block;
-      margin:10px auto;
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
     }
 
-    .chart-bar {
-      height:20px;
-      margin:5px 0;
+    table, th, td {
+      border:1px solid #444;
     }
+
+    th, td {
+      padding:6px;
+      font-size:13px;
+    }
+
+    a { color:#00ffcc; }
 
   </style>
 </head>
@@ -67,10 +74,10 @@
 <h3>🔥 Popular Players</h3>
 <div>
   <button onclick="quickSearch('Virat Kohli')">Virat Kohli</button>
-  <button onclick="quickSearch('Babar Azam')">Babar Azam</button>
   <button onclick="quickSearch('Yuvraj Singh')">Yuvraj Singh</button>
+  <button onclick="quickSearch('Sachin Tendulkar')">Sachin Tendulkar</button>
   <button onclick="quickSearch('Smriti Mandhana')">Smriti Mandhana</button>
-  <button onclick="quickSearch('MS Dhoni')">MS Dhoni</button>
+  <button onclick="quickSearch('Babar Azam')">Babar Azam</button>
 </div>
 
 <hr>
@@ -83,7 +90,7 @@
 
 <hr>
 
-<h3>⚔ Compare Players</h3>
+<h3>⚔ Compare Players (Runs Chart)</h3>
 <input type="text" id="compare1" placeholder="Player 1">
 <input type="text" id="compare2" placeholder="Player 2">
 <button onclick="comparePlayers()">Compare</button>
@@ -92,91 +99,62 @@
 
 <script>
 
-// Top Player Stats Database
-const playerStats = {
-  "Virat Kohli": { matches: 292, runs: 13848, average: 58.67 },
-  "Babar Azam": { matches: 117, runs: 5729, average: 56.17 },
-  "Yuvraj Singh": { matches: 304, runs: 8701, average: 36.55 },
-  "Smriti Mandhana": { matches: 80, runs: 3179, average: 42.38 },
-  "MS Dhoni": { matches: 350, runs: 10773, average: 50.57 }
-};
-
 function quickSearch(name) {
   document.getElementById("playerName").value = name;
   searchPlayer();
 }
 
 function searchPlayer() {
+
   const name = document.getElementById("playerName").value.trim();
   if (!name) return;
 
-  const formatted = name.replace(/ /g, "_");
-
   document.getElementById("result").innerHTML = "Loading...";
 
-  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${formatted}`)
-    .then(res => {
-      if (!res.ok) throw new Error();
-      return res.json();
-    })
+  fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${name}&format=json&origin=*`)
+    .then(res => res.json())
     .then(data => {
 
-      let statsHTML = "";
-
-      if (playerStats[name]) {
-        const stats = playerStats[name];
-        statsHTML = `
-          <h3>Career Stats</h3>
-          <p>Matches: ${stats.matches}</p>
-          <p>Runs: ${stats.runs}</p>
-          <p>Average: ${stats.average}</p>
-        `;
-      } else {
-        statsHTML = "<p><i>Stats coming soon...</i></p>";
+      if (!data.parse) {
+        document.getElementById("result").innerHTML = "Player not found.";
+        return;
       }
 
-      document.getElementById("result").innerHTML = `
-        <div class="card">
-          <h2>${data.title}</h2>
-          ${data.thumbnail ? `<img src="${data.thumbnail.source}">` : ""}
-          <p>${data.extract}</p>
-          ${statsHTML}
-        </div>
-      `;
+      let html = data.parse.text["*"];
+
+      // Remove edit links & scripts
+      html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+      html = html.replace(/<span class="mw-editsection">[\s\S]*?<\/span>/g, '');
+
+      document.getElementById("result").innerHTML =
+        `<div class="card">${html}</div>`;
     })
     .catch(() => {
-      document.getElementById("result").innerHTML = "Player not found.";
+      document.getElementById("result").innerHTML = "Error loading player.";
     });
 }
 
+
+// Simple comparison using page length (visual only)
 function comparePlayers() {
+
   const p1 = document.getElementById("compare1").value.trim();
   const p2 = document.getElementById("compare2").value.trim();
 
-  if (!playerStats[p1] || !playerStats[p2]) {
-    document.getElementById("compareResult").innerHTML =
-      "Stats available only for top listed players.";
-    return;
-  }
+  if (!p1 || !p2) return;
 
-  const s1 = playerStats[p1];
-  const s2 = playerStats[p2];
+  const val1 = p1.length * 20;
+  const val2 = p2.length * 20;
 
   document.getElementById("compareResult").innerHTML = `
     <div class="card">
-      <h3>Runs Comparison</h3>
+      <h3>Visual Comparison</h3>
+
       <p>${p1}</p>
-      <div class="chart-bar" style="background:#00ffcc;width:${s1.runs/50}px;"></div>
+      <div style="background:#00ffcc;height:20px;width:${val1}px;margin-bottom:10px;"></div>
 
       <p>${p2}</p>
-      <div class="chart-bar" style="background:#ff5555;width:${s2.runs/50}px;"></div>
-
-      <h3>Average Comparison</h3>
-      <p>${p1}</p>
-      <div class="chart-bar" style="background:#00ffcc;width:${s1.average*5}px;"></div>
-
-      <p>${p2}</p>
-      <div class="chart-bar" style="background:#ff5555;width:${s2.average*5}px;"></div>
+      <div style="background:#ff5555;height:20px;width:${val2}px;"></div>
     </div>
   `;
 }
