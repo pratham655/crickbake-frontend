@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cricket Player Explorer 🏏</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      padding: 20px;
+    }
+
+    .search-box {
+      margin: 20px;
+    }
+
+    input {
+      padding: 10px;
+      width: 260px;
+      border-radius: 5px;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      padding: 10px 15px;
+      border-radius: 5px;
+      border: none;
+      background: #00ffcc;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+
+    button:hover {
+      background: #00ddaa;
+    }
+
+    .card {
+      background: #1e1e1e;
+      margin: 30px auto;
+      padding: 20px;
+      width: 85%;
+      max-width: 600px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.6);
+    }
+
+    img {
+      width: 150px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+
+    a {
+      color: #00ffcc;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .loading {
+      margin-top: 20px;
+      color: #00ffcc;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🏏 Cricket Player Explorer</h1>
+
+<div class="search-box">
+  <input type="text" id="playerName" placeholder="Enter player full name..." />
+  <button onclick="searchPlayer()">Search</button>
+</div>
+
+<div id="result"></div>
+
+<script>
+  function searchPlayer() {
+
+    const name = document.getElementById("playerName").value.trim();
+
+    if (!name) return;
+
+    const resultDiv = document.getElementById("result");
+    resultDiv.innerHTML = "<p class='loading'>Loading player information...</p>";
+
+    const formattedName = name.replace(/ /g, "_");
+
+    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${formattedName}`)
+      .then(res => res.json())
+      .then(data => {
+
+        if (!data.title || data.type === "https://mediawiki.org/wiki/HyperSwitch/errors/not_found") {
+          resultDiv.innerHTML = "<p>Player not found. Try full name.</p>";
+          return;
+        }
+
+        resultDiv.innerHTML = `
+          <div class="card">
+            <h2>${data.title}</h2>
+            ${data.thumbnail ? `<img src="${data.thumbnail.source}" />` : ""}
+            <p>${data.extract}</p>
+            <br>
+            <a href="${data.content_urls.desktop.page}" target="_blank">
+              Read Full Biography on Wikipedia →
+            </a>
+          </div>
+        `;
+      })
+      .catch(() => {
+        resultDiv.innerHTML = "<p>Something went wrong. Try again.</p>";
+      });
+  }
+
+  document.getElementById("playerName")
+    .addEventListener("keyup", function(event) {
+      if (event.key === "Enter") {
+        searchPlayer();
+      }
+    });
+</script>
+
+</body>
+</html>
