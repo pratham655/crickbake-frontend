@@ -6,20 +6,21 @@
 
   <style>
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-      color: white;
-      text-align: center;
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+      color:white;
+      text-align:center;
     }
 
     h1 { padding:20px; }
 
-    input, select {
+    input {
       padding:8px;
       margin:5px;
       border-radius:5px;
       border:none;
+      width:200px;
     }
 
     button {
@@ -38,57 +39,24 @@
       background:#1e1e1e;
       margin:20px auto;
       padding:20px;
-      width:95%;
-      max-width:1000px;
+      width:90%;
+      max-width:700px;
       border-radius:12px;
       text-align:left;
     }
 
-    .tabs { margin-top:15px; }
-
-    .tab-btn {
-      padding:6px 12px;
-      margin:5px;
-      background:#111;
-      cursor:pointer;
-      border-radius:5px;
-    }
-
-    .tab-btn.active {
-      background:#00ffcc;
-      color:black;
-    }
-
-    .compare-container {
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:center;
-    }
-
-    .compare-card {
-      width:45%;
-      min-width:300px;
-      margin:10px;
-      background:#1e1e1e;
-      padding:15px;
+    img {
+      width:150px;
       border-radius:10px;
-      text-align:left;
+      display:block;
+      margin:10px auto;
     }
 
-    table {
-      width:100%;
-      border-collapse:collapse;
-      margin-top:10px;
+    .chart-bar {
+      height:20px;
+      margin:5px 0;
     }
 
-    table, th, td {
-      border:1px solid #444;
-    }
-
-    th, td {
-      padding:6px;
-      font-size:13px;
-    }
   </style>
 </head>
 
@@ -96,149 +64,123 @@
 
 <h1>🏏 Cricket Player Explorer</h1>
 
-<!-- Search -->
-<h3>🔎 Search Any Player</h3>
-<input type="text" id="playerName" placeholder="Enter full player name">
-<button onclick="searchPlayer()">Search</button>
-
-<div class="tabs" id="tabs" style="display:none;">
-  <span class="tab-btn active" onclick="showTab('bio')">Biography</span>
-  <span class="tab-btn" onclick="showTab('stats')">Stats</span>
+<h3>🔥 Popular Players</h3>
+<div>
+  <button onclick="quickSearch('Virat Kohli')">Virat Kohli</button>
+  <button onclick="quickSearch('Babar Azam')">Babar Azam</button>
+  <button onclick="quickSearch('Yuvraj Singh')">Yuvraj Singh</button>
+  <button onclick="quickSearch('Smriti Mandhana')">Smriti Mandhana</button>
+  <button onclick="quickSearch('MS Dhoni')">MS Dhoni</button>
 </div>
+
+<hr>
+
+<h3>🔎 Search Player</h3>
+<input type="text" id="playerName" placeholder="Enter full name">
+<button onclick="searchPlayer()">Search</button>
 
 <div id="result"></div>
 
 <hr>
 
-<!-- Compare -->
 <h3>⚔ Compare Players</h3>
 <input type="text" id="compare1" placeholder="Player 1">
 <input type="text" id="compare2" placeholder="Player 2">
 <button onclick="comparePlayers()">Compare</button>
 
-<div class="compare-container" id="compareResult"></div>
+<div id="compareResult"></div>
 
 <script>
-let bioContent = "";
-let statsContent = "";
+
+// Top Player Stats Database
+const playerStats = {
+  "Virat Kohli": { matches: 292, runs: 13848, average: 58.67 },
+  "Babar Azam": { matches: 117, runs: 5729, average: 56.17 },
+  "Yuvraj Singh": { matches: 304, runs: 8701, average: 36.55 },
+  "Smriti Mandhana": { matches: 80, runs: 3179, average: 42.38 },
+  "MS Dhoni": { matches: 350, runs: 10773, average: 50.57 }
+};
+
+function quickSearch(name) {
+  document.getElementById("playerName").value = name;
+  searchPlayer();
+}
 
 function searchPlayer() {
   const name = document.getElementById("playerName").value.trim();
   if (!name) return;
 
-  document.getElementById("tabs").style.display = "none";
+  const formatted = name.replace(/ /g, "_");
+
   document.getElementById("result").innerHTML = "Loading...";
 
-  fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
-    .then(res => res.json())
-    .then(searchData => {
-
-      if (!searchData.query.search.length) {
-        document.getElementById("result").innerHTML = "Player not found.";
-        return;
-      }
-
-      const pageTitle = searchData.query.search[0].title;
-      return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${pageTitle}&format=json&origin=*`);
+  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${formatted}`)
+    .then(res => {
+      if (!res.ok) throw new Error();
+      return res.json();
     })
-    .then(res => res.json())
     .then(data => {
 
-      let html = data.parse.text["*"];
+      let statsHTML = "";
 
-      // Extract first 3 meaningful paragraphs
-      const paragraphs = html.match(/<p>.*?<\/p>/g);
-
-      if (paragraphs) {
-        bioContent = paragraphs.slice(0, 3).join("");
+      if (playerStats[name]) {
+        const stats = playerStats[name];
+        statsHTML = `
+          <h3>Career Stats</h3>
+          <p>Matches: ${stats.matches}</p>
+          <p>Runs: ${stats.runs}</p>
+          <p>Average: ${stats.average}</p>
+        `;
       } else {
-        bioContent = "No biography found.";
+        statsHTML = "<p><i>Stats coming soon...</i></p>";
       }
 
-      // Extract and clean infobox
-      const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
-
-      if (tableMatch) {
-        let cleaned = tableMatch[0];
-        cleaned = cleaned.replace(/<img[^>]*>/g, '');
-        cleaned = cleaned.replace(/style="[^"]*"/g, '');
-        statsContent = cleaned;
-      } else {
-        statsContent = "No stats available.";
-      }
-
-      document.getElementById("tabs").style.display = "block";
-      showTab('bio');
+      document.getElementById("result").innerHTML = `
+        <div class="card">
+          <h2>${data.title}</h2>
+          ${data.thumbnail ? `<img src="${data.thumbnail.source}">` : ""}
+          <p>${data.extract}</p>
+          ${statsHTML}
+        </div>
+      `;
     })
     .catch(() => {
-      document.getElementById("result").innerHTML = "Error loading data.";
+      document.getElementById("result").innerHTML = "Player not found.";
     });
-}
-
-function showTab(tab) {
-  const buttons = document.querySelectorAll(".tab-btn");
-  buttons.forEach(btn => btn.classList.remove("active"));
-  if (tab === 'bio') buttons[0].classList.add("active");
-  else buttons[1].classList.add("active");
-
-  document.getElementById("result").innerHTML =
-    `<div class="card">${tab === 'bio' ? bioContent : statsContent}</div>`;
 }
 
 function comparePlayers() {
   const p1 = document.getElementById("compare1").value.trim();
   const p2 = document.getElementById("compare2").value.trim();
-  if (!p1 || !p2) return;
 
-  document.getElementById("compareResult").innerHTML = "Loading...";
+  if (!playerStats[p1] || !playerStats[p2]) {
+    document.getElementById("compareResult").innerHTML =
+      "Stats available only for top listed players.";
+    return;
+  }
 
-  Promise.all([fetchPlayerCard(p1), fetchPlayerCard(p2)])
-    .then(results => {
-      document.getElementById("compareResult").innerHTML = `
-        <div class="compare-card">${results[0]}</div>
-        <div class="compare-card">${results[1]}</div>
-        <div class="card">
-          <h3>Comparison Chart</h3>
-          <div id="chart"></div>
-        </div>
-      `;
-      createChart(p1, p2);
-    });
-}
+  const s1 = playerStats[p1];
+  const s2 = playerStats[p2];
 
-function fetchPlayerCard(name) {
-  return fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${name}&format=json&origin=*`)
-    .then(res => res.json())
-    .then(searchData => {
-      if (!searchData.query.search.length) return "Not found.";
-      const pageTitle = searchData.query.search[0].title;
-      return fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${pageTitle}&format=json&origin=*`);
-    })
-    .then(res => res.json())
-    .then(data => {
-      let html = data.parse.text["*"];
-      const paragraphs = html.match(/<p>.*?<\/p>/g);
-      const bio = paragraphs ? paragraphs.slice(0,2).join("") : "";
-      const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
-      return `
-        <h3>${data.parse.title}</h3>
-        ${bio}
-        ${tableMatch ? tableMatch[0] : ""}
-      `;
-    });
-}
+  document.getElementById("compareResult").innerHTML = `
+    <div class="card">
+      <h3>Runs Comparison</h3>
+      <p>${p1}</p>
+      <div class="chart-bar" style="background:#00ffcc;width:${s1.runs/50}px;"></div>
 
-function createChart(p1,p2){
-  const val1 = p1.length * 6;
-  const val2 = p2.length * 6;
+      <p>${p2}</p>
+      <div class="chart-bar" style="background:#ff5555;width:${s2.runs/50}px;"></div>
 
-  document.getElementById("chart").innerHTML = `
-    <p>${p1}</p>
-    <div style="background:#00ffcc;height:20px;width:${val1}px;margin-bottom:10px;"></div>
-    <p>${p2}</p>
-    <div style="background:#ff5555;height:20px;width:${val2}px;"></div>
+      <h3>Average Comparison</h3>
+      <p>${p1}</p>
+      <div class="chart-bar" style="background:#00ffcc;width:${s1.average*5}px;"></div>
+
+      <p>${p2}</p>
+      <div class="chart-bar" style="background:#ff5555;width:${s2.average*5}px;"></div>
+    </div>
   `;
 }
+
 </script>
 
 </body>
