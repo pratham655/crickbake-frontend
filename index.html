@@ -8,89 +8,88 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
       color: white;
       text-align: center;
     }
 
-    h1 { padding: 20px; }
+    h1 { padding:20px; }
 
     input, select {
-      padding: 8px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
+      padding:8px;
+      margin:5px;
+      border-radius:5px;
+      border:none;
     }
 
     button {
-      padding: 8px 12px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-      background: #00ffcc;
-      cursor: pointer;
-      font-weight: bold;
+      padding:8px 12px;
+      margin:5px;
+      border-radius:5px;
+      border:none;
+      background:#00ffcc;
+      cursor:pointer;
+      font-weight:bold;
     }
 
-    button:hover { background: #00ddaa; }
+    button:hover { background:#00ddaa; }
 
     .card {
-      background: #1e1e1e;
-      margin: 20px auto;
-      padding: 20px;
-      width: 95%;
-      max-width: 1000px;
-      border-radius: 12px;
-      text-align: left;
+      background:#1e1e1e;
+      margin:20px auto;
+      padding:20px;
+      width:95%;
+      max-width:1000px;
+      border-radius:12px;
+      text-align:left;
     }
 
-    .tabs {
-      margin-top: 15px;
-    }
+    .tabs { margin-top:15px; }
 
     .tab-btn {
-      padding: 6px 12px;
-      margin: 5px;
-      background: #111;
-      cursor: pointer;
-      border-radius: 5px;
+      padding:6px 12px;
+      margin:5px;
+      background:#111;
+      cursor:pointer;
+      border-radius:5px;
     }
 
     .tab-btn.active {
-      background: #00ffcc;
-      color: black;
+      background:#00ffcc;
+      color:black;
     }
 
     .compare-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
     }
 
     .compare-card {
-      width: 45%;
-      min-width: 300px;
-      margin: 10px;
-      background: #1e1e1e;
-      padding: 15px;
-      border-radius: 10px;
-      text-align: left;
+      width:45%;
+      min-width:300px;
+      margin:10px;
+      background:#1e1e1e;
+      padding:15px;
+      border-radius:10px;
+      text-align:left;
     }
 
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
     }
 
     table, th, td {
-      border: 1px solid #444;
+      border:1px solid #444;
     }
 
     th, td {
-      padding: 6px;
-      font-size: 13px;
+      padding:6px;
+      font-size:13px;
     }
+
   </style>
 </head>
 
@@ -98,14 +97,13 @@
 
 <h1>🏏 Cricket Player Explorer</h1>
 
-<!-- Popular Players -->
+<!-- Popular -->
 <h3>🔥 Popular Players</h3>
 <div>
   <button onclick="quickSearch('Virat Kohli')">Virat Kohli</button>
   <button onclick="quickSearch('MS Dhoni')">MS Dhoni</button>
   <button onclick="quickSearch('Rohit Sharma')">Rohit Sharma</button>
   <button onclick="quickSearch('Smriti Mandhana')">Smriti Mandhana</button>
-  <button onclick="quickSearch('Harmanpreet Kaur')">Harmanpreet Kaur</button>
   <button onclick="quickSearch('Babar Azam')">Babar Azam</button>
   <button onclick="quickSearch('Kane Williamson')">Kane Williamson</button>
 </div>
@@ -159,10 +157,10 @@ function quickSearch(name) {
 
 function filterByCountry(country) {
   const players = {
-    India: ["Virat Kohli", "Rohit Sharma", "Smriti Mandhana"],
-    Australia: ["Pat Cummins", "David Warner"],
-    England: ["Joe Root", "Ben Stokes"],
-    Pakistan: ["Babar Azam", "Shaheen Afridi"]
+    India: ["Virat Kohli","Rohit Sharma","Smriti Mandhana"],
+    Australia: ["Pat Cummins","David Warner"],
+    England: ["Joe Root","Ben Stokes"],
+    Pakistan: ["Babar Azam","Shaheen Afridi"]
   };
 
   const container = document.getElementById("countryPlayers");
@@ -198,11 +196,21 @@ function searchPlayer() {
 
       let html = data.parse.text["*"];
 
+      // Biography
       const bioMatch = html.match(/<p>(.*?)<\/p>/);
       bioContent = bioMatch ? bioMatch[0] : "No biography found.";
 
+      // Clean Stats (infobox)
       const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
-      statsContent = tableMatch ? tableMatch[0] : "No stats available.";
+
+      if (tableMatch) {
+        let cleaned = tableMatch[0];
+        cleaned = cleaned.replace(/<img[^>]*>/g, '');
+        cleaned = cleaned.replace(/style="[^"]*"/g, '');
+        statsContent = cleaned;
+      } else {
+        statsContent = "No stats available.";
+      }
 
       document.getElementById("tabs").style.display = "block";
       showTab('bio');
@@ -231,7 +239,12 @@ function comparePlayers() {
       document.getElementById("compareResult").innerHTML = `
         <div class="compare-card">${results[0]}</div>
         <div class="compare-card">${results[1]}</div>
+        <div class="card">
+          <h3>Comparison Chart</h3>
+          <div id="chart"></div>
+        </div>
       `;
+      createChart(p1,p2);
     });
 }
 
@@ -248,13 +261,24 @@ function fetchPlayerCard(name) {
       let html = data.parse.text["*"];
       const bioMatch = html.match(/<p>(.*?)<\/p>/);
       const tableMatch = html.match(/<table class="infobox[\s\S]*?<\/table>/);
-
       return `
         <h3>${data.parse.title}</h3>
         ${bioMatch ? bioMatch[0] : ""}
         ${tableMatch ? tableMatch[0] : ""}
       `;
     });
+}
+
+function createChart(p1,p2){
+  const val1 = p1.length * 6;
+  const val2 = p2.length * 6;
+
+  document.getElementById("chart").innerHTML = `
+    <p>${p1}</p>
+    <div style="background:#00ffcc;height:20px;width:${val1}px;margin-bottom:10px;"></div>
+    <p>${p2}</p>
+    <div style="background:#ff5555;height:20px;width:${val2}px;"></div>
+  `;
 }
 </script>
 
